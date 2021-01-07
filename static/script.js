@@ -212,7 +212,7 @@ function setListeners() {
     }
   });
   document.addEventListener('mousedown', event => {
-    if (event.which == 1) {
+    if (event.which === 1) {
       player.LBDown = true;
     }
   });
