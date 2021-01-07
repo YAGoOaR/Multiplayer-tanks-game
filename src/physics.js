@@ -24,7 +24,7 @@ class Vector2 {
   }
 
   static getAngle(vector) {
-    return Math.acos(vector.x / vector.length()) * Math.sign(vector.y);
+    return Math.acos(vector.x / vector.length) * Math.sign(vector.y);
   }
 
   static makeFromAngle(angle) {
@@ -44,13 +44,13 @@ class Vector2 {
     this.y = y;
   }
 
-  length() {
+  get length() {
     return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
   }
 
   normalized() {
-    const length = this.length();
-    return new Vector2(this.x / length, this.y / length);
+    const len = this.length;
+    return new Vector2(this.x / len, this.y / len);
   }
 
   add(vector) {
@@ -66,7 +66,7 @@ class Vector2 {
   }
 
   rotate(angle) {
-    return Vector2.makeFromAngle(this.length(), Vector2.getAngle(this) + angle);
+    return Vector2.makeFromAngle(this.length, Vector2.getAngle(this) + angle);
   }
 
   multiply(n) {
@@ -90,6 +90,9 @@ class GameObject {
     this.velocity = new Vector2(0, 0);
     this.rotation = 0;
     this.angularSpeed = 0;
+    this.objType = 'default';
+    this.size = 0;
+    this.hp = 0;
     objects.push(this);
   }
 
@@ -101,6 +104,15 @@ class GameObject {
       if (!obj) continue;
       obj.rotation += obj.angularSpeed * deltaTime;
       obj.position = obj.position.add(obj.velocity.multiply(deltaTime));
+      if (obj.objType === 'bullet') {
+        for (const obj2 of objects) {
+          if (!obj2 || obj2.objType !== 'player') continue;
+          const distance = obj2.position.subtract(obj.position).length;
+          if (distance < obj2.size && obj2.hp > 0) {
+            obj2.hp--;
+          }
+        }
+      }
     }
   }
 

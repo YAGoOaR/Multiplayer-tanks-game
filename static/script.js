@@ -99,6 +99,11 @@ Promise.all(promises)
   });
 
 const gameFunction = () => {
+  if(!serverData.players[player.playerId]){
+    writeLine(log, 'Defeat');
+    socket.close();
+    return;
+  }
   const time = Date.now();
   const deltaTime = (time - serverData.time) / 1000;
   updateMouseControls();
