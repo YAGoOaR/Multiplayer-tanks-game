@@ -20,8 +20,17 @@ const PLAYERTOP_SIZE_Y = 30;
 const gameField = new Vector2(GAME_FIELD_SIZEX, GAME_FIELD_SIZEY);
 GameObject.field = gameField;
 
-const imageFiles  = ['/img/player.png', '/img/currentPlayer.png', '/img/playerTop.png'];
-const jsFiles  = ['/script.js', '/utils.js', '/canvasFunctions.js', '/mathUtils.js'];
+const imageFiles  = [
+  '/img/player.png',
+  '/img/currentPlayer.png',
+  '/img/playerTop.png',
+];
+const jsFiles  = [
+  '/script.js',
+  '/utils.js',
+  '/canvasFunctions.js',
+  '/mathUtils.js',
+];
 const fileExists = (arr, dir) => arr.indexOf(dir) !== -1;
 
 const sendStaticFile = (source, res, contentType = '') => {
@@ -118,7 +127,14 @@ setInterval(() => {
 
 function updateClients() {
   for (const client of ws.clients) {
-    client.send(JSON.stringify({ event: 'UpdatePlayers', data: { time: GameObject.prevTime, players } }));
+    const data = {
+      event: 'UpdatePlayers',
+      data: {
+        time: GameObject.prevTime,
+        players
+      }
+    };
+    client.send(JSON.stringify(data));
   }
 }
 
@@ -126,7 +142,9 @@ function physics() {
   for (const player of players) {
     if (!player) continue;
     player.gameObject.angularSpeed = player.controls.x * TURN_SENSITIVITY;
-    player.gameObject.velocity = Vector2.makeFromAngle(player.gameObject.rotation).multiply(player.controls.y * MOVE_SENSITIVITY);
+    const rotationVector = Vector2.makeFromAngle(player.gameObject.rotation);
+    const velocity = player.controls.y * MOVE_SENSITIVITY;
+    player.gameObject.velocity = rotationVector.multiply(velocity);
     Vector2.clamp(gameField, player.gameObject.position);
   }
   GameObject.Physics();
