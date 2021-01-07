@@ -124,7 +124,7 @@ function physics(){
   for(const player of players){
     if(!player) continue;
     player.gameObject.angularSpeed = player.controls.x * TURN_SENSITIVITY;
-    player.gameObject.velocity = Vector2.makeFromAngle(player.rotation).multiply(player.controls.y * MOVE_SENSITIVITY);
+    player.gameObject.velocity = Vector2.makeFromAngle(player.gameObject.rotation).multiply(player.controls.y * MOVE_SENSITIVITY);
     Vector2.clamp(gameField, player.gameObject.position);
   }
   GameObject.Physics();

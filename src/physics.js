@@ -1,7 +1,6 @@
 'use strict';
 
 const objects = [];
-let prevTime = Date.now();
 
 class Vector2 {
   constructor(x = 0, y = 0) {
@@ -92,8 +91,8 @@ class GameObject{
 
   static Physics(){
     const time = Date.now();
-    const deltaTime = (time - prevTime) / 1000;
-    prevTime = time;
+    const deltaTime = (time - GameObject.prevTime) / 1000;
+    GameObject.prevTime = time;
     for(const obj of objects){
       if(!obj) continue;
       obj.rotation += obj.angularSpeed * deltaTime;
@@ -109,5 +108,7 @@ class GameObject{
   }
 
 }
+
+GameObject.prevTime = Date.now();
 
 module.exports = { GameObject, Vector2 };

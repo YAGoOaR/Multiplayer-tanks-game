@@ -96,15 +96,15 @@ const gameFunction = () => {
   for(const p of serverData.players){
     if(!p) continue;
     const cvsSize = { x: cvs.width, y: cvs.height };
-    const pos = MathUtils.addVectors(p.position, MathUtils.multiplyVector(p.velocity, deltaTime)) ;
+    const pos = MathUtils.addVectors(p.gameObject.position, MathUtils.multiplyVector(p.gameObject.velocity, deltaTime));
     MathUtils.clampVector(pos, cvsSize);
 
     if(p.playerId === player.playerId) {
-      CanvasFunctions.drawRotatedImage(ctx, curPlayerImage, pos, p.rotation, playerSize);
+      CanvasFunctions.drawRotatedImage(ctx, curPlayerImage, pos, p.gameObject.rotation, playerSize);
       CanvasFunctions.drawRotatedImage(ctx, playerTopImage, pos, player.heading, playerTopSize);
     }
     else {
-      CanvasFunctions.drawRotatedImage(ctx, playerImage, pos, p.rotation, playerSize);
+      CanvasFunctions.drawRotatedImage(ctx, playerImage, pos, p.gameObject.rotation, playerSize);
       CanvasFunctions.drawRotatedImage(ctx, playerTopImage, pos, p.heading, playerTopSize);
     }
   }
@@ -168,8 +168,8 @@ function updateMouseControls(){
     y: mousePos.y - canvasPos.y
   };
   const vector = {
-    x: mousePosOnCvs.x - serverData.players[player.playerId].position.x,
-    y: mousePosOnCvs.y - serverData.players[player.playerId].position.y
+    x: mousePosOnCvs.x - serverData.players[player.playerId].gameObject.position.x,
+    y: mousePosOnCvs.y - serverData.players[player.playerId].gameObject.position.y
   }
   player.heading = Math.acos(vector.x / MathUtils.vectorLength(vector)) * Math.sign(vector.y);
 }
