@@ -102,6 +102,7 @@ const gameFunction = () => {
   if(!serverData.players[player.playerId]){
     writeLine(log, 'Defeat');
     socket.close();
+    socketActive = false;
     return;
   }
   const time = Date.now();
@@ -124,6 +125,7 @@ const gameFunction = () => {
     }
   }
   for (const bullet of serverData.bullets) {
+    if(!bullet.active) continue;
     drawRotatedImage(ctx, bulletImage, bullet.position, bullet.rotation, bulletSize);
   }
 };

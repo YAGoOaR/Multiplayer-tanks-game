@@ -93,6 +93,7 @@ class GameObject {
     this.objType = 'default';
     this.size = 0;
     this.hp = 0;
+    this.active = true;
     objects.push(this);
   }
 
@@ -109,7 +110,9 @@ class GameObject {
           if (!obj2 || obj2.objType !== 'player') continue;
           const distance = obj2.position.subtract(obj.position).length;
           if (distance < obj2.size && obj2.hp > 0) {
+            obj.active = false;
             obj2.hp--;
+            break;
           }
         }
       }
