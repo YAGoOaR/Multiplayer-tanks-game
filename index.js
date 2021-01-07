@@ -17,6 +17,10 @@ const PLAYER_SIZE_X = 40;
 const PLAYER_SIZE_Y = 30;
 const PLAYERTOP_SIZE_X = 60;
 const PLAYERTOP_SIZE_Y = 30;
+const BULLET_SIZE_X = 10;
+const BULLET_SIZE_Y = 5;
+const BULLET_SPEED = 500;
+const SHOOTING_OFFSET = 18;
 const gameField = new Vector2(GAME_FIELD_SIZEX, GAME_FIELD_SIZEY);
 GameObject.field = gameField;
 
@@ -24,6 +28,8 @@ const imageFiles  = [
   '/img/player.png',
   '/img/currentPlayer.png',
   '/img/playerTop.png',
+  '/img/background.png',
+  '/img/bullet.png',
 ];
 const jsFiles  = [
   '/script.js',
@@ -70,6 +76,7 @@ const ws = new WebSocket.Server({ server });
 
 let counter = 0;
 const players = [];
+const bullets = [];
 
 ws.on('connection', (clientSocket, req) => {
   const ip = req.socket.remoteAddress;
@@ -93,6 +100,19 @@ ws.on('connection', (clientSocket, req) => {
         const controls = msg.data.controls;
         players[playerId].controls.Set(controls.x, controls.y);
         players[playerId].heading = msg.data.heading;
+        if (msg.data.LBDown === true) {
+          const bullet = new GameObject();
+          const headingVector = Vector2.makeFromAngle(msg.data.heading);
+          bullet.velocity = headingVector.multiply(BULLET_SPEED);
+          const pos = players[playerId].gameObject.position;
+          bullet.position = pos.add(headingVector.multiply(SHOOTING_OFFSET));
+          bullet.rotation = msg.data.heading;
+          bullets.push(bullet);
+          setTimeout(() => {
+            bullets.splice(bullets.indexOf(bullet), 1);
+            GameObject.Destroy(bullet);
+          }, 1000);
+        }
       }
     }
   });
@@ -116,6 +136,10 @@ ws.on('connection', (clientSocket, req) => {
       playerTopSize: {
         x: PLAYERTOP_SIZE_X,
         y: PLAYERTOP_SIZE_Y
+      },
+      bulletSize: {
+        x: BULLET_SIZE_X,
+        y: BULLET_SIZE_Y
       }
     }
   }));
@@ -131,7 +155,8 @@ function updateClients() {
       event: 'UpdatePlayers',
       data: {
         time: GameObject.prevTime,
-        players
+        players,
+        bullets
       }
     };
     client.send(JSON.stringify(data));

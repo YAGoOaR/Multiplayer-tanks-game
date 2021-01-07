@@ -14,6 +14,10 @@ const playerTopSize = {
   x: 0,
   y: 0
 };
+const bulletSize = {
+  x: 0,
+  y: 0
+};
 
 const socket = new WebSocket('ws://127.0.0.1:8000/');
 const log = document.getElementById('log');
@@ -35,7 +39,8 @@ const player = {
   playerId: 0,
   rotation: 0,
   heading: 0,
-  controls: { x: 0, y: 0 }
+  controls: { x: 0, y: 0 },
+  LBDown: false
 };
 
 const writeLine = (parent, text) => {
@@ -83,6 +88,8 @@ function createTimeoutPromise(time) {
 const playerImage = createImage('img/player.png');
 const curPlayerImage = createImage('img/currentPlayer.png');
 const playerTopImage = createImage('img/playerTop.png');
+const bg = createImage('img/background.png');
+const bulletImage = createImage('img/bullet.png');
 const setupResolve = createTimeoutPromise(DEFAULT_TIMEOUT);
 
 Promise.all(promises)
@@ -95,7 +102,7 @@ const gameFunction = () => {
   const time = Date.now();
   const deltaTime = (time - serverData.time) / 1000;
   updateMouseControls();
-  clearCanvas(ctx, cvs);
+  ctx.drawImage(bg, 0, 0, cvs.width, cvs.height);
   for (const p of serverData.players) {
     if (!p) continue;
     const cvsSize = { x: cvs.width, y: cvs.height };
@@ -110,6 +117,9 @@ const gameFunction = () => {
       drawRotatedImage(ctx, playerImage, pos, rotation, playerSize);
       drawRotatedImage(ctx, playerTopImage, pos, p.heading, playerTopSize);
     }
+  }
+  for (const bullet of serverData.bullets) {
+    drawRotatedImage(ctx, bulletImage, bullet.position, bullet.rotation, bulletSize);
   }
 };
 
@@ -126,6 +136,7 @@ function main() {
       event: 'clientInput',
       data: player
     });
+    player.LBDown = false;
   }, SEND_RATE);
 
   timers.push(sendToServerTimer);
@@ -161,6 +172,7 @@ socket.onmessage = message => {
     cvs.height = data.gameFieldSize.y;
     MathUtils.CopyVector(playerSize, data.playerSize);
     MathUtils.CopyVector(playerTopSize, data.playerTopSize);
+    MathUtils.CopyVector(bulletSize, data.bulletSize);
     writeLine(log, 'Logged as Player' + messageData.data.playerId);
   }
 };
@@ -176,25 +188,25 @@ function updateMouseControls() {
 }
 
 function setListeners() {
-  document.addEventListener('keydown', event => {
-    for (const i in keys) {
-      if (event.code === keys[i]) {
-        keysDown[i] = true;
-        updateControls();
+  const events = ['keyup', 'keydown']
+  for(let j = 0; j <= 1; j++){
+    document.addEventListener(events[j], event => {
+      for (const i in keys) {
+        if (event.code === keys[i]) {
+          keysDown[i] = j;
+          updateControls();
+        }
       }
-    }
-  });
-  document.addEventListener('keyup', event => {
-    for (const i in keys) {
-      if (event.code === keys[i]) {
-        keysDown[i] = false;
-        updateControls();
-      }
-    }
-  });
+    });
+  }
   document.addEventListener('keydown', event => {
     if (event.code === 'KeyR') {
       socket.close();
+    }
+  });
+  document.addEventListener('mousedown', event => {
+    if (event.which == 1) {
+      player.LBDown = true;
     }
   });
 }

@@ -35,6 +35,10 @@ class Vector2 {
     return vector1.x === vector2.x && vector1.y === vector2.y;
   }
 
+  static objToVector2(obj) {
+    return new Vector2(obj.x, obj.y);
+  }
+
   Set(x, y) {
     this.x = x;
     this.y = y;
