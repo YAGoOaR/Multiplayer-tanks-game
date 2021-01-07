@@ -47,7 +47,6 @@ function getNewPlayerPos(playersNumber) {
     if (j) {
       acc += Math.PI / 2 / i;
     }
-    console.log(j);
     acc += Math.PI;
   }
   const spawnVector = (Vector2.makeFromAngle(-Math.PI / 2 + acc));
