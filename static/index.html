@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html>
 <body>
-<h1>Game</h1>
+<h1 class="unselectable">Game</h1>
 <canvas id="canvas" width="300" height="300"></canvas>
-<div id="log"></div>
+<style media="screen">
+.unselectable {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+</style>
+<div id="log" class="unselectable"></div>
 <script type="module" src="./script.js"></script>
 </body>
 </html>

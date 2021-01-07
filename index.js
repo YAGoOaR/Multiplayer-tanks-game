@@ -21,6 +21,7 @@ const BULLET_SIZE_X = 10;
 const BULLET_SIZE_Y = 5;
 const BULLET_SPEED = 500;
 const SHOOTING_OFFSET = 18;
+const SPAWN_DISTANCE = 120;
 const gameField = new Vector2(GAME_FIELD_SIZEX, GAME_FIELD_SIZEY);
 GameObject.field = gameField;
 
@@ -38,6 +39,20 @@ const jsFiles  = [
   '/mathUtils.js',
 ];
 const fileExists = (arr, dir) => arr.indexOf(dir) !== -1;
+
+function getNewPlayerPos(playersNumber) {
+  let acc = 0;
+  for (let i = 0; i < playersNumber; i++) {
+    const j = i % 2;
+    if (j) {
+      acc += Math.PI / 2 / i;
+    }
+    console.log(j);
+    acc += Math.PI;
+  }
+  const spawnVector = (Vector2.makeFromAngle(-Math.PI / 2 + acc));
+  return spawnVector.multiply(SPAWN_DISTANCE).add(gameField.divide(2));
+}
 
 const sendStaticFile = (source, res, contentType = '') => {
   const pathToFile = path.resolve(__dirname, `./static${source}`);
@@ -82,12 +97,16 @@ ws.on('connection', (clientSocket, req) => {
   const ip = req.socket.remoteAddress;
   const userId = counter;
 
-  players[counter] = {
+  const player = {
     playerId: counter,
     gameObject: new GameObject(),
     controls: new Vector2(0, 0),
     heading: 0,
   };
+
+  player.gameObject.position = getNewPlayerPos(counter);
+
+  players[counter] = player;
 
   console.log(`Connected ${ip}`);
   updateClients();
