@@ -5,7 +5,9 @@
   "dependencies": {
     "ws": "^7.4.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^7.17.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
