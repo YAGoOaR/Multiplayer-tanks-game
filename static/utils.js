@@ -12,11 +12,8 @@ function getMousePos(e) {
 
   if (e.pageX === null && e.clientX !== null) {
     const html = document.documentElement;
-    const body = document.body;
-    const offsetX = html && html.scrollLeft || body && body.scrollLeft || 0;
-    const offsetY = html && html.scrollTop || body && body.scrollTop || 0;
-    e.pageX = e.clientX + offsetX - (html.clientLeft || 0);
-    e.pageY = e.clientY + offsetY - (html.clientTop || 0);
+    e.pageX = e.clientX - html.clientLeft || 0;
+    e.pageY = e.clientY - html.clientTop || 0;
   }
   return { x: e.pageX, y: e.pageY };
 }

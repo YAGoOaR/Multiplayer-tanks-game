@@ -6,18 +6,6 @@ import { clearCanvas, drawRotatedImage } from './canvasFunctions.js';
 const FRAME_RATE = 1000 / 60;
 const SEND_RATE = 1000 / 20;
 const DEFAULT_TIMEOUT = 2000;
-const playerSize = {
-  x: 0,
-  y: 0
-};
-const playerTopSize = {
-  x: 0,
-  y: 0
-};
-const bulletSize = {
-  x: 0,
-  y: 0
-};
 
 const socket = new WebSocket('ws://127.0.0.1:8000/');
 const log = document.getElementById('log');
@@ -34,13 +22,17 @@ const promises = [];
 
 let socketActive = false;
 let serverData = {};
+let texturePaths = [];
+let bgTextureId = -1;
+const textures = [];
 
 const player = {
   playerId: 0,
+  position: { x: 0, y: 0 },
   rotation: 0,
   heading: 0,
   controls: { x: 0, y: 0 },
-  LBDown: false
+  LBDown: false,
 };
 
 const writeLine = (parent, text) => {
@@ -81,16 +73,19 @@ function createTimeoutPromise(time) {
     }, time);
     onResolve = resolve;
   });
-  promises.push(promise);
-  return onResolve;
+  return { onResolve, promise };
 }
 
-const playerImage = createImage('img/player.png');
-const curPlayerImage = createImage('img/currentPlayer.png');
-const playerTopImage = createImage('img/playerTop.png');
-const bg = createImage('img/background.png');
-const bulletImage = createImage('img/bullet.png');
-const setupResolve = createTimeoutPromise(DEFAULT_TIMEOUT);
+const setup = createTimeoutPromise(DEFAULT_TIMEOUT);
+
+const textureSetup = () => {
+  for (const path of texturePaths) {
+    const texture = createImage(path);
+    textures.push(texture);
+  }
+};
+
+setup.promise.then(textureSetup);
 
 Promise.all(promises)
   .then(main)
@@ -99,34 +94,31 @@ Promise.all(promises)
   });
 
 const gameFunction = () => {
-  if(!serverData.players[player.playerId]){
-    writeLine(log, 'Defeat');
-    socket.close();
-    socketActive = false;
-    return;
-  }
   const time = Date.now();
   const deltaTime = (time - serverData.time) / 1000;
   updateMouseControls();
-  ctx.drawImage(bg, 0, 0, cvs.width, cvs.height);
-  for (const p of serverData.players) {
-    if (!p) continue;
+  ctx.drawImage(textures[bgTextureId], 0, 0, cvs.width, cvs.height);
+  for (const obj of serverData.objects) {
     const cvsSize = { x: cvs.width, y: cvs.height };
-    const movement = MathUtils.multiplyVector(p.gameObject.velocity, deltaTime);
-    const pos = MathUtils.addVectors(p.gameObject.position, movement);
-    MathUtils.clampVector(pos, cvsSize);
-    const rotation = p.gameObject.rotation;
-    if (p.playerId === player.playerId) {
-      drawRotatedImage(ctx, curPlayerImage, pos, rotation, playerSize);
-      drawRotatedImage(ctx, playerTopImage, pos, player.heading, playerTopSize);
-    } else {
-      drawRotatedImage(ctx, playerImage, pos, rotation, playerSize);
-      drawRotatedImage(ctx, playerTopImage, pos, p.heading, playerTopSize);
+    const movement = MathUtils.multiplyVector(obj.velocity, deltaTime);
+    const pos = MathUtils.addVectors(obj.position, movement);
+    const rotation = obj.rotation;
+
+    const draw = drawRotatedImage.bind(null, ctx, pos);
+
+    if (obj.objType === 'player') {
+      MathUtils.clampVector(pos, cvsSize);
+      if (obj.playerId === player.playerId) {
+        player.position = obj.position;
+        draw(textures[obj.alternativeTextureId], rotation, obj.textureSize);
+        draw(textures[obj.topTextureId], player.heading, obj.topTextureSize);
+      } else {
+        draw(textures[obj.textureId], rotation, obj.textureSize);
+        draw(textures[obj.topTextureId], obj.heading, obj.topTextureSize);
+      }
+    } else if (obj.objType === 'bullet') {
+      draw(textures[obj.textureId], obj.heading, obj.textureSize);
     }
-  }
-  for (const bullet of serverData.bullets) {
-    if(!bullet.active) continue;
-    drawRotatedImage(ctx, bulletImage, bullet.position, bullet.rotation, bulletSize);
   }
 };
 
@@ -173,13 +165,13 @@ socket.onmessage = message => {
     serverData = data;
   }
   if (messageData.event === 'setClient') {
-    setupResolve();
+    texturePaths = data.textures;
+    bgTextureId = data.bgTextureId;
     player.playerId = data.playerId;
+    writeLine(log, data.playerId);
     cvs.width = data.gameFieldSize.x;
     cvs.height = data.gameFieldSize.y;
-    MathUtils.CopyVector(playerSize, data.playerSize);
-    MathUtils.CopyVector(playerTopSize, data.playerTopSize);
-    MathUtils.CopyVector(bulletSize, data.bulletSize);
+    setup.onResolve();
     writeLine(log, 'Logged as Player' + messageData.data.playerId);
   }
 };
@@ -189,14 +181,14 @@ function updateMouseControls() {
     x: mousePos.x - canvasPos.x,
     y: mousePos.y - canvasPos.y
   };
-  const position = serverData.players[player.playerId].gameObject.position;
+  const position = player.position;
   const headingVector = MathUtils.subtractVectors(mousePosOnCvs, position);
   player.heading = MathUtils.vectorAngle(headingVector);
 }
 
 function setListeners() {
-  const events = ['keyup', 'keydown']
-  for(let j = 0; j <= 1; j++){
+  const events = ['keyup', 'keydown'];
+  for (let j = 0; j <= 1; j++) {
     document.addEventListener(events[j], event => {
       for (const i in keys) {
         if (event.code === keys[i]) {

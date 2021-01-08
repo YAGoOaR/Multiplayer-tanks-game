@@ -1,5 +1,5 @@
 
-function drawRotatedImage(context, image, pos, angle, size) {
+function drawRotatedImage(context, pos, image, angle, size) {
   context.save();
   context.translate(pos.x, pos.y);
   context.rotate(angle);

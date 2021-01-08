@@ -3,60 +3,20 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
-const { Vector2, GameObject } = require('./src/physics.js');
+const { GameObject } = require('./src/physics.js');
+const { Player } = require('./src/gameObjects.js');
+const staticFiles = require('./resources/staticFiles.json');
+
 const WebSocket = require('ws');
 
 const index = fs.readFileSync('./static/index.html', 'utf8');
 
-const TURN_SENSITIVITY = 2;
-const MOVE_SENSITIVITY = 100;
 const PHYSIS_RATE = 1000 / 30;
-const GAME_FIELD_SIZEX = 500;
-const GAME_FIELD_SIZEY = 500;
-const PLAYER_COLLIDER_SIZE = 15;
-const PLAYER_SIZE_X = 40;
-const PLAYER_SIZE_Y = 30;
-const PLAYERTOP_SIZE_X = 60;
-const PLAYERTOP_SIZE_Y = 30;
-const BULLET_SIZE_X = 10;
-const BULLET_SIZE_Y = 5;
-const BULLET_SPEED = 500;
-const SHOOTING_OFFSET = 18;
-const SPAWN_DISTANCE = 120;
-const gameField = new Vector2(GAME_FIELD_SIZEX, GAME_FIELD_SIZEY);
-GameObject.field = gameField;
 
-const imageFiles  = [
-  '/img/player.png',
-  '/img/currentPlayer.png',
-  '/img/playerTop.png',
-  '/img/background.png',
-  '/img/bullet.png',
-];
-const jsFiles  = [
-  '/script.js',
-  '/utils.js',
-  '/canvasFunctions.js',
-  '/mathUtils.js',
-];
 const fileExists = (arr, dir) => arr.indexOf(dir) !== -1;
-
-function getNewPlayerPos(playersNumber) {
-  let acc = 0;
-  for (let i = 0; i < playersNumber; i++) {
-    const j = i % 2;
-    if (j) {
-      acc += Math.PI / 2 / i;
-    }
-    acc += Math.PI;
-  }
-  const spawnVector = (Vector2.makeFromAngle(-Math.PI / 2 + acc));
-  return spawnVector.multiply(SPAWN_DISTANCE).add(gameField.divide(2));
-}
 
 const sendStaticFile = (source, res, contentType = '') => {
   const pathToFile = path.resolve(__dirname, `./static${source}`);
-  console.log(`loading ${pathToFile}`);
   fs.readFile(
     pathToFile,
     (err, file) => {
@@ -72,10 +32,9 @@ const sendStaticFile = (source, res, contentType = '') => {
 
 const server = http.createServer((req, res) => {
   const source = req.url;
-  console.log(`request: ${source}`);
-  if (fileExists(imageFiles, source)) {
+  if (fileExists(staticFiles.imageFiles, source)) {
     sendStaticFile(source, res);
-  } else if (fileExists(jsFiles, source)) {
+  } else if (fileExists(staticFiles.jsFiles, source)) {
     sendStaticFile(source, res, 'text/javascript');
   } else {
     res.writeHead(200);
@@ -89,80 +48,31 @@ server.listen(8000, () => {
 
 const ws = new WebSocket.Server({ server });
 
-let counter = 0;
-const players = [];
-const bullets = [];
+ws.on('connection', clientSocket => {
+  const userId = Player.count;
+  new Player();
 
-ws.on('connection', (clientSocket, req) => {
-  const ip = req.socket.remoteAddress;
-  const userId = counter;
-
-  const player = {
-    playerId: counter,
-    gameObject: new GameObject(),
-    controls: new Vector2(0, 0),
-    heading: 0,
-  };
-
-  player.gameObject.position = getNewPlayerPos(counter);
-  player.gameObject.objType = 'player';
-  player.gameObject.size = PLAYER_COLLIDER_SIZE;
-  player.gameObject.hp = 3;
-  players[counter] = player;
-
-  console.log(`Connected ${ip}`);
+  console.log(`Connected Player${userId}`);
   updateClients();
 
   clientSocket.on('message', message => {
     const msg = JSON.parse(message);
     if (msg.event === 'clientInput') {
       const playerId = msg.data.playerId;
-      if (players[playerId]) {
-        const controls = msg.data.controls;
-        players[playerId].controls.Set(controls.x, controls.y);
-        players[playerId].heading = msg.data.heading;
-        if (msg.data.LBDown === true) {
-          const bullet = new GameObject();
-          const headingVector = Vector2.makeFromAngle(msg.data.heading);
-          bullet.velocity = headingVector.multiply(BULLET_SPEED);
-          const pos = players[playerId].gameObject.position;
-          bullet.position = pos.add(headingVector.multiply(SHOOTING_OFFSET));
-          bullet.rotation = msg.data.heading;
-          bullet.objType = 'bullet';
-          bullets.push(bullet);
-          setTimeout(() => {
-            bullets.splice(bullets.indexOf(bullet), 1);
-            GameObject.Destroy(bullet);
-          }, 1000);
-        }
-      }
+      if (userId !== playerId) return;
+      Player.Input(msg.data);
     }
   });
   clientSocket.on('close', () => {
-    console.log(`Disconnected ${ip}`);
-    if (!players[userId]) return;
-    GameObject.Destroy(players[userId].gameObject);
-    delete players[userId];
+    console.log(`Disconnected Player${userId}`);
+    Player.RemovePlayer(userId);
   });
   clientSocket.send(JSON.stringify({
     event: 'setClient', data: {
-      playerId: counter++,
-      gameFieldSize: {
-        x: GAME_FIELD_SIZEX,
-        y: GAME_FIELD_SIZEY
-      },
-      playerSize: {
-        x: PLAYER_SIZE_X,
-        y: PLAYER_SIZE_Y
-      },
-      playerTopSize: {
-        x: PLAYERTOP_SIZE_X,
-        y: PLAYERTOP_SIZE_Y
-      },
-      bulletSize: {
-        x: BULLET_SIZE_X,
-        y: BULLET_SIZE_Y
-      }
+      playerId: userId,
+      gameFieldSize: GameObject.gameField,
+      textures: staticFiles.imageFiles,
+      bgTextureId: 3,
     }
   }));
 });
@@ -177,8 +87,7 @@ function updateClients() {
       event: 'UpdatePlayers',
       data: {
         time: GameObject.prevTime,
-        players,
-        bullets
+        objects: GameObject.objects,
       }
     };
     client.send(JSON.stringify(data));
@@ -186,18 +95,7 @@ function updateClients() {
 }
 
 function physics() {
-  for (const player of players) {
-    if (!player) continue;
-    if (player.gameObject.hp < 1) {
-      GameObject.Destroy(player.gameObject);
-      delete players[player.playerId];
-    }
-    player.gameObject.angularSpeed = player.controls.x * TURN_SENSITIVITY;
-    const rotationVector = Vector2.makeFromAngle(player.gameObject.rotation);
-    const velocity = player.controls.y * MOVE_SENSITIVITY;
-    player.gameObject.velocity = rotationVector.multiply(velocity);
-    Vector2.clamp(gameField, player.gameObject.position);
-  }
+  Player.Controls();
   GameObject.Physics();
   updateClients();
 }

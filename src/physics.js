@@ -1,6 +1,7 @@
 'use strict';
 
-const objects = [];
+const GAME_FIELD_SIZEX = 500;
+const GAME_FIELD_SIZEY = 500;
 
 class Vector2 {
   constructor(x = 0, y = 0) {
@@ -85,49 +86,57 @@ class Vector2 {
 
 class GameObject {
 
-  constructor() {
-    this.position = new Vector2(0, 0);
+  constructor(position = new Vector2(0, 0)) {
+    this.position = position;
     this.velocity = new Vector2(0, 0);
     this.rotation = 0;
     this.angularSpeed = 0;
     this.objType = 'default';
     this.size = 0;
+    this.textureSize = new Vector2(0, 0);
+    this.textureId = -1;
     this.hp = 0;
-    this.active = true;
-    objects.push(this);
+    GameObject.objects.push(this);
   }
 
   static Physics() {
     const time = Date.now();
     const deltaTime = (time - GameObject.prevTime) / 1000;
     GameObject.prevTime = time;
-    for (const obj of objects) {
+    for (const obj of GameObject.objects) {
       if (!obj) continue;
       obj.rotation += obj.angularSpeed * deltaTime;
       obj.position = obj.position.add(obj.velocity.multiply(deltaTime));
       if (obj.objType === 'bullet') {
-        for (const obj2 of objects) {
+        for (const obj2 of GameObject.objects) {
           if (!obj2 || obj2.objType !== 'player') continue;
           const distance = obj2.position.subtract(obj.position).length;
           if (distance < obj2.size && obj2.hp > 0) {
-            obj.active = false;
-            obj2.hp--;
+            GameObject.Destroy(obj);
+            obj2.damage();
             break;
           }
         }
+      }
+      if (obj.objType === 'player') {
+        Vector2.clamp(GameObject.gameField, obj.position);
       }
     }
   }
 
   static Destroy(obj) {
-    const i = objects.indexOf(obj);
-    if (i > -1) {
-      delete objects[i];
+    const i = GameObject.objects.indexOf(obj);
+    if (i !== -1) {
+      GameObject.objects.splice(i, 1);
     }
   }
 
 }
 
+Vector2.zero = new Vector2(0, 0);
+
+GameObject.objects = [];
 GameObject.prevTime = Date.now();
+GameObject.gameField = new Vector2(GAME_FIELD_SIZEX, GAME_FIELD_SIZEY);
 
 module.exports = { GameObject, Vector2 };

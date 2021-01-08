@@ -1,0 +1,15 @@
+{
+  "imageFiles": [
+    "/img/player.png",
+    "/img/currentPlayer.png",
+    "/img/playerTop.png",
+    "/img/background.png",
+    "/img/bullet.png"
+  ],
+  "jsFiles": [
+    "/script.js",
+    "/utils.js",
+    "/canvasFunctions.js",
+    "/mathUtils.js"
+  ]
+}
