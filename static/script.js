@@ -18,8 +18,6 @@ const keys = ['KeyW', 'KeyS', 'KeyA', 'KeyD'];
 const keysDown = [false, false, false, false];
 const mousePos = { x: 0, y: 0 };
 
-const promises = [];
-
 let socketActive = false;
 let serverData = {};
 let texturePaths = [];
@@ -39,6 +37,7 @@ const writeLine = (parent, text) => {
   const line = document.createElement('div');
   line.innerHTML = `<p>${text}</p>`;
   parent.appendChild(line);
+  return line;
 };
 
 function sendDataToServer(socket, data) {
@@ -50,19 +49,23 @@ function updateControls() {
   player.controls.y = keysDown[0] - keysDown[1];
 }
 
-function createImage(src) {
-  const image = new Image();
-  image.src = src;
-  const promise = new Promise((resolve, reject) => {
-    setTimeout(() => {
-      reject('File not found');
-    }, 2000);
-    image.onload = () => {
-      resolve();
-    };
-  });
-  promises.push(promise);
-  return image;
+const imageLoader = () => {
+  const promises = [];
+  const loadImage = (src) => {
+    const image = new Image();
+    image.src = src;
+    const promise = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject('File not found');
+      }, 2000);
+      image.onload = () => {
+        resolve();
+      };
+    });
+    promises.push(promise);
+    return image;
+  }
+  return { promises, loadImage };
 }
 
 function createTimeoutPromise(time) {
@@ -78,20 +81,27 @@ function createTimeoutPromise(time) {
 
 const setup = createTimeoutPromise(DEFAULT_TIMEOUT);
 
-const textureSetup = () => {
+const loadTextures = () => {
+  const newLoader = imageLoader();
   for (const path of texturePaths) {
-    const texture = createImage(path);
+    const texture = newLoader.loadImage(path);
     textures.push(texture);
   }
+  return newLoader.promises;
 };
 
-setup.promise.then(textureSetup);
-
-Promise.all(promises)
-  .then(main)
-  .catch(() => {
-    console.error('File load error');
-  });
+setup.promise.then(
+  () => {
+    const promises = loadTextures();
+    Promise.all(promises)
+      .then(main)
+      .catch(() => {
+        console.error('File load error');
+    });
+  }
+).catch(() => {
+  console.error('Connection timeout');
+});
 
 const gameFunction = () => {
   const time = Date.now();
@@ -168,7 +178,6 @@ socket.onmessage = message => {
     texturePaths = data.textures;
     bgTextureId = data.bgTextureId;
     player.playerId = data.playerId;
-    writeLine(log, data.playerId);
     cvs.width = data.gameFieldSize.x;
     cvs.height = data.gameFieldSize.y;
     setup.onResolve();

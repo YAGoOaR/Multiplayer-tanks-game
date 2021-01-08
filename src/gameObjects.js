@@ -62,8 +62,8 @@ class Player extends GameObject {
 
   damage() {
     this.hp--;
-    this.dead = true;
     if (this.hp < 1) {
+      this.dead = true;
       GameObject.Destroy(this);
       return;
     }
