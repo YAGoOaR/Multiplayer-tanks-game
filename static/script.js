@@ -23,6 +23,7 @@ let socketActive = false;
 let serverData = {};
 let texturePaths = [];
 let bgTextureId = -1;
+let previousTime = Date.now();
 const textures = [];
 
 const player = {
@@ -61,7 +62,7 @@ setup.promise
 
 const gameFunction = () => {
   const time = Date.now();
-  const deltaTime = (time - serverData.time) / 1000;
+  const deltaTime = (time - previousTime) / 1000;
   updateMouseControls();
   ctx.drawImage(textures[bgTextureId], 0, 0, cvs.width, cvs.height);
   for (const obj of serverData.objects) {
@@ -128,6 +129,7 @@ socket.onmessage = message => {
     writeLine(log, messageData.data);
   }
   if (messageData.event === 'UpdatePlayers') {
+    previousTime = Date.now();
     serverData = data;
   }
   if (messageData.event === 'setClient') {
