@@ -1,4 +1,4 @@
-# Multiplayer-tanks-game
+# Multiplayer tanks game
 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d9a991b331dc4adb9781ea516a7d44c9)](https://www.codacy.com/gh/YAGoOaR/Multiplayer-tanks-game/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=YAGoOaR/Multiplayer-tanks-game&amp;utm_campaign=Badge_Grade)
 
