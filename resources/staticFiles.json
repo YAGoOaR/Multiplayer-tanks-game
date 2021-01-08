@@ -4,7 +4,8 @@
     "/img/currentPlayer.png",
     "/img/playerTop.png",
     "/img/background.png",
-    "/img/bullet.png"
+    "/img/bullet.png",
+    "/img/box.png"
   ],
   "jsFiles": [
     "/script.js",

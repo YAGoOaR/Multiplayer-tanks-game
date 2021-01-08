@@ -40,6 +40,14 @@ class Vector2 {
     return new Vector2(obj.x, obj.y);
   }
 
+  static angle(v1, v2) {
+    return Math.acos(v1.scalarMultiply(v2) / (v1.length * v2.length));
+  }
+
+  scalarMultiply(vector) {
+    return this.x * vector.x + this.y * vector.y;
+  }
+
   Set(x, y) {
     this.x = x;
     this.y = y;
@@ -67,7 +75,8 @@ class Vector2 {
   }
 
   rotate(angle) {
-    return Vector2.makeFromAngle(this.length, Vector2.getAngle(this) + angle);
+    const newAngle = Vector2.getAngle(this) + angle;
+    return Vector2.makeFromAngle(newAngle).multiply(this.length);
   }
 
   multiply(n) {
@@ -106,19 +115,37 @@ class GameObject {
     for (const obj of GameObject.objects) {
       if (!obj) continue;
       obj.rotation += obj.angularSpeed * deltaTime;
-      obj.position = obj.position.add(obj.velocity.multiply(deltaTime));
+      const movement = obj.velocity.multiply(deltaTime);
+      obj.position = obj.position.add(movement);
       if (obj.objType === 'bullet') {
         for (const obj2 of GameObject.objects) {
-          if (!obj2 || obj2.objType !== 'player') continue;
-          const distance = obj2.position.subtract(obj.position).length;
-          if (distance < obj2.size && obj2.hp > 0) {
-            GameObject.Destroy(obj);
-            obj2.damage();
-            break;
+          if (obj2.objType === 'player') {
+            const distance = obj2.position.subtract(obj.position).length;
+            if (distance < obj2.size && obj2.hp > 0) {
+              GameObject.Destroy(obj);
+              obj2.damage();
+              break;
+            }
+          }
+          if (obj2.objType === 'obstacle') {
+            if (obj2.checkCollider(obj.position)) {
+              GameObject.Destroy(obj);
+              break;
+            }
           }
         }
       }
       if (obj.objType === 'player') {
+        for (const obj2 of GameObject.objects) {
+          if (obj2.objType === 'obstacle') {
+            const distance = obj2.position.subtract(obj.position).length;
+            if (distance < obj2.size + obj.size) {
+              obj.position = obj.position.subtract(movement);
+              obj.velocity = Vector2.zero;
+              break;
+            }
+          }
+        }
         Vector2.clamp(GameObject.gameField, obj.position);
       }
     }

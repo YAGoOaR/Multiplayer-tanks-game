@@ -3,9 +3,10 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
-const { GameObject } = require('./src/physics.js');
-const { Player } = require('./src/gameObjects.js');
+const { Vector2, GameObject } = require('./src/physics.js');
+const { Player, Obstacle } = require('./src/gameObjects.js');
 const staticFiles = require('./resources/staticFiles.json');
+const gameMap = require('./resources/gameMap.json');
 
 const WebSocket = require('ws');
 
@@ -29,6 +30,10 @@ const sendStaticFile = (source, res, contentType = '') => {
     }
   );
 };
+
+for (const pos of gameMap.obstacles) {
+  Obstacle.createObstacle(Vector2.objToVector2(pos));
+}
 
 const server = http.createServer((req, res) => {
   const source = req.url;

@@ -3,7 +3,7 @@ import { MathUtils } from './mathUtils.js';
 import { getElementPos,  getMousePos } from './utils.js';
 import { clearCanvas, drawRotatedImage } from './canvasFunctions.js';
 import { writeLine, createLoadingLog } from './clientLogger.js';
-import {  createTimeoutPromise, loadImages } from './asyncFunctions.js';
+import { createTimeoutPromise, loadImages } from './asyncFunctions.js';
 
 const FRAME_RATE = 1000 / 60;
 const SEND_RATE = 1000 / 20;
@@ -82,7 +82,7 @@ const gameFunction = () => {
         draw(textures[obj.textureId], rotation, obj.textureSize);
         draw(textures[obj.topTextureId], obj.heading, obj.topTextureSize);
       }
-    } else if (obj.objType === 'bullet') {
+    } else {
       draw(textures[obj.textureId], obj.heading, obj.textureSize);
     }
   }
