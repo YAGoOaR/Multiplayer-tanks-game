@@ -108,44 +108,54 @@ class GameObject {
     GameObject.objects.push(this);
   }
 
+  static checkCircleCollision(obj, obj2) {
+    const distance = obj2.position.subtract(obj.position).length;
+    return distance < obj2.size + obj.size;
+  }
+
+  static checkPlayerCollision(player, movement) {
+    for (const obj2 of GameObject.objects) {
+      if (obj2.objType === 'obstacle') {
+        if (GameObject.checkCircleCollision(player, obj2)) {
+          player.position = player.position.subtract(movement);
+          player.velocity = Vector2.zero;
+          break;
+        }
+      }
+    }
+  }
+
+  static checkHit(bullet) {
+    for (const obj2 of GameObject.objects) {
+      if (obj2.objType === 'player') {
+        if (GameObject.checkCircleCollision(bullet, obj2) && !obj2.dead) {
+          GameObject.Destroy(bullet);
+          obj2.damage();
+          break;
+        }
+      } else if (obj2.objType === 'obstacle') {
+        if (obj2.checkCollider(bullet.position)) {
+          GameObject.Destroy(bullet);
+          break;
+        }
+      }
+    }
+  }
+
   static Physics() {
     const time = Date.now();
     const deltaTime = (time - GameObject.prevTime) / 1000;
     GameObject.prevTime = time;
     for (const obj of GameObject.objects) {
-      if (!obj) continue;
+      if (obj.objType === 'obstacle') continue;
       obj.rotation += obj.angularSpeed * deltaTime;
       const movement = obj.velocity.multiply(deltaTime);
       obj.position = obj.position.add(movement);
+
       if (obj.objType === 'bullet') {
-        for (const obj2 of GameObject.objects) {
-          if (obj2.objType === 'player') {
-            const distance = obj2.position.subtract(obj.position).length;
-            if (distance < obj2.size && obj2.hp > 0) {
-              GameObject.Destroy(obj);
-              obj2.damage();
-              break;
-            }
-          }
-          if (obj2.objType === 'obstacle') {
-            if (obj2.checkCollider(obj.position)) {
-              GameObject.Destroy(obj);
-              break;
-            }
-          }
-        }
-      }
-      if (obj.objType === 'player') {
-        for (const obj2 of GameObject.objects) {
-          if (obj2.objType === 'obstacle') {
-            const distance = obj2.position.subtract(obj.position).length;
-            if (distance < obj2.size + obj.size) {
-              obj.position = obj.position.subtract(movement);
-              obj.velocity = Vector2.zero;
-              break;
-            }
-          }
-        }
+        GameObject.checkHit(obj);
+      } else if (obj.objType === 'player') {
+        GameObject.checkPlayerCollision(obj, movement);
         Vector2.clamp(GameObject.gameField, obj.position);
       }
     }
@@ -157,7 +167,6 @@ class GameObject {
       GameObject.objects.splice(i, 1);
     }
   }
-
 }
 
 Vector2.zero = new Vector2(0, 0);
