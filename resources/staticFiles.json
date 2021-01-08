@@ -10,6 +10,8 @@
     "/script.js",
     "/utils.js",
     "/canvasFunctions.js",
-    "/mathUtils.js"
+    "/mathUtils.js",
+    "/clientLogger.js",
+    "/asyncFunctions.js"
   ]
 }

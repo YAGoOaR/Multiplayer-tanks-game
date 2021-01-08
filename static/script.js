@@ -2,10 +2,13 @@
 import { MathUtils } from './mathUtils.js';
 import { getElementPos,  getMousePos } from './utils.js';
 import { clearCanvas, drawRotatedImage } from './canvasFunctions.js';
+import { writeLine, createLoadingLog } from './clientLogger.js';
+import {  createTimeoutPromise, loadImages } from './asyncFunctions.js';
 
 const FRAME_RATE = 1000 / 60;
 const SEND_RATE = 1000 / 20;
-const DEFAULT_TIMEOUT = 2000;
+const TIMEOUT_MESSAGE = 'Connection timeout!';
+const LOAD_ERROR_MESSAGE = 'Failed to load!';
 
 const socket = new WebSocket('ws://127.0.0.1:8000/');
 const log = document.getElementById('log');
@@ -14,8 +17,6 @@ const ctx = cvs.getContext('2d');
 const canvasPos = getElementPos(cvs);
 
 const timers = [];
-const keys = ['KeyW', 'KeyS', 'KeyA', 'KeyD'];
-const keysDown = [false, false, false, false];
 const mousePos = { x: 0, y: 0 };
 
 let socketActive = false;
@@ -33,75 +34,30 @@ const player = {
   LBDown: false,
 };
 
-const writeLine = (parent, text) => {
-  const line = document.createElement('div');
-  line.innerHTML = `<p>${text}</p>`;
-  parent.appendChild(line);
-  return line;
-};
-
 function sendDataToServer(socket, data) {
   socket.send(JSON.stringify(data));
 }
 
-function updateControls() {
-  player.controls.x = keysDown[3] - keysDown[2];
-  player.controls.y = keysDown[0] - keysDown[1];
-}
+const setup = createTimeoutPromise(TIMEOUT_MESSAGE);
 
-const imageLoader = () => {
-  const promises = [];
-  const loadImage = (src) => {
-    const image = new Image();
-    image.src = src;
-    const promise = new Promise((resolve, reject) => {
-      setTimeout(() => {
-        reject('File not found');
-      }, 2000);
-      image.onload = () => {
-        resolve();
-      };
-    });
-    promises.push(promise);
-    return image;
-  }
-  return { promises, loadImage };
-}
+setup.promise
+  .then(() => {
+    const imageCount = texturePaths.length;
+    const { onDataLoad } = createLoadingLog(log, imageCount);
+    const promises = loadImages(textures, texturePaths, onDataLoad);
 
-function createTimeoutPromise(time) {
-  let onResolve;
-  const promise = new Promise((resolve, reject) => {
-    setTimeout(() => {
-      reject('Connection timeout');
-    }, time);
-    onResolve = resolve;
-  });
-  return { onResolve, promise };
-}
-
-const setup = createTimeoutPromise(DEFAULT_TIMEOUT);
-
-const loadTextures = () => {
-  const newLoader = imageLoader();
-  for (const path of texturePaths) {
-    const texture = newLoader.loadImage(path);
-    textures.push(texture);
-  }
-  return newLoader.promises;
-};
-
-setup.promise.then(
-  () => {
-    const promises = loadTextures();
-    Promise.all(promises)
-      .then(main)
+    Promise.all(promises).then(() => {
+      writeLine(log, 'Server data loaded');
+      main();
+    })
       .catch(() => {
-        console.error('File load error');
-    });
-  }
-).catch(() => {
-  console.error('Connection timeout');
-});
+        console.error(LOAD_ERROR_MESSAGE);
+      });
+
+  })
+  .catch(() => {
+    console.error(TIMEOUT_MESSAGE);
+  });
 
 const gameFunction = () => {
   const time = Date.now();
@@ -133,7 +89,7 @@ const gameFunction = () => {
 };
 
 function main() {
-  setListeners();
+  setControlListeners();
 
   timers.push(
     setInterval(gameFunction, FRAME_RATE)
@@ -180,7 +136,7 @@ socket.onmessage = message => {
     player.playerId = data.playerId;
     cvs.width = data.gameFieldSize.x;
     cvs.height = data.gameFieldSize.y;
-    setup.onResolve();
+    setup.resolveCallback();
     writeLine(log, 'Logged as Player' + messageData.data.playerId);
   }
 };
@@ -195,8 +151,16 @@ function updateMouseControls() {
   player.heading = MathUtils.vectorAngle(headingVector);
 }
 
-function setListeners() {
+function setControlListeners() {
+  const keys = ['KeyW', 'KeyS', 'KeyA', 'KeyD'];
+  const keysDown = [false, false, false, false];
   const events = ['keyup', 'keydown'];
+
+  const updateControls = () => {
+    player.controls.x = keysDown[3] - keysDown[2];
+    player.controls.y = keysDown[0] - keysDown[1];
+  };
+
   for (let j = 0; j <= 1; j++) {
     document.addEventListener(events[j], event => {
       for (const i in keys) {
@@ -207,20 +171,20 @@ function setListeners() {
       }
     });
   }
+
   document.addEventListener('keydown', event => {
     if (event.code === 'KeyR') {
       socket.close();
     }
   });
+
   document.addEventListener('mousedown', event => {
     if (event.which === 1) {
       player.LBDown = true;
     }
   });
-}
 
-document.onmousemove = e => {
-  const mousePosition = getMousePos(e);
-  mousePos.x = mousePosition.x;
-  mousePos.y = mousePosition.y;
-};
+  document.onmousemove = e => {
+    MathUtils.CopyVector(mousePos, getMousePos(e));
+  };
+}
