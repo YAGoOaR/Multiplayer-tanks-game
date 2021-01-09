@@ -59,11 +59,9 @@ function onConnection(clientSocket) {
 
 const server = http.createServer((req, res) => {
   const source = req.url !== '/' ? req.url : DEFAULT_SOURCE;
-  console.log(source);
   const sendFile = sendStaticFile.bind(null, res);
-  for(const i in staticFiles){
+  for (const i in staticFiles) {
     if (fileExists(staticFiles[i].paths, source)) {
-      console.log('found');
       sendFile(source, staticFiles[i].contentType);
       break;
     }
