@@ -73,6 +73,10 @@ class Player extends GameObject {
     Player.count++;
   }
 
+  static CreatePlayer() {
+    return new Player();
+  }
+
   shoot() {
     const time = Date.now();
     if (time - this.prevShoot > SHOOT_COOLDOWN) {
@@ -157,6 +161,12 @@ class Obstacle extends GameObject {
 
   static createObstacle(pos) {
     return new Obstacle(pos);
+  }
+
+  static mapSetup(obstaclePosArr) {
+    for (const pos of obstaclePosArr) {
+      Obstacle.createObstacle(Vector2.objToVector2(pos));
+    }
   }
 
   checkCollider(pos) {

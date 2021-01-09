@@ -2,9 +2,9 @@
 
 const fs = require('fs');
 const http = require('http');
-const path = require('path');
-const { Vector2, GameObject } = require('./src/physics.js');
+const { GameObject } = require('./src/physics.js');
 const { Player, Obstacle } = require('./src/gameObjects.js');
+const { fileExists, sendStaticFile } = require('./src/serverFunctions.js');
 const staticFiles = require('./resources/staticFiles.json');
 const gameMap = require('./resources/gameMap.json');
 
@@ -14,25 +14,49 @@ const index = fs.readFileSync('./static/index.html', 'utf8');
 
 const PHYSIS_RATE = 1000 / 30;
 
-const fileExists = (arr, dir) => arr.indexOf(dir) !== -1;
+function updateClients(clients, data) {
+  for (const client of clients) {
+    const message = {
+      event: 'UpdatePlayers',
+      data
+    };
+    client.send(JSON.stringify(message));
+  }
+}
 
-const sendStaticFile = (source, res, contentType = '') => {
-  const pathToFile = path.resolve(__dirname, `./static${source}`);
-  fs.readFile(
-    pathToFile,
-    (err, file) => {
-      if (err) {
-        res.statusCode = 404;
-        res.end(JSON.stringify({ error: 'Not found' }));
-      }
-      res.setHeader('Content-Type', contentType);
-      res.end(file);
+function onPlayerMessage(userId, message) {
+  const msg = JSON.parse(message);
+  if (msg.event === 'clientInput') {
+    msg.data.playerId = userId;
+    Player.Input(msg.data);
+  }
+}
+
+function onPlayerDisconnect(userId) {
+  console.log(`Disconnected Player${userId}`);
+  Player.RemovePlayer(userId);
+}
+
+function onConnection(clientSocket) {
+  const userId = Player.count;
+  Player.CreatePlayer();
+
+  console.log(`Connected Player${userId}`);
+
+  const onMessage = onPlayerMessage.bind(null, userId);
+  const onClose = onPlayerDisconnect.bind(null, userId);
+
+  clientSocket.on('message', onMessage);
+  clientSocket.on('close', onClose);
+
+  clientSocket.send(JSON.stringify({
+    event: 'setClient', data: {
+      playerId: userId,
+      gameFieldSize: GameObject.gameField,
+      textures: staticFiles.imageFiles,
+      bgTextureId: 3,
     }
-  );
-};
-
-for (const pos of gameMap.obstacles) {
-  Obstacle.createObstacle(Vector2.objToVector2(pos));
+  }));
 }
 
 const server = http.createServer((req, res) => {
@@ -53,54 +77,24 @@ server.listen(8000, () => {
 
 const ws = new WebSocket.Server({ server });
 
+const dataToSend = {
+  time: GameObject.prevTime,
+  objects: GameObject.objects,
+};
+
 ws.on('connection', clientSocket => {
-  const userId = Player.count;
-  new Player();
-
-  console.log(`Connected Player${userId}`);
-  updateClients();
-
-  clientSocket.on('message', message => {
-    const msg = JSON.parse(message);
-    if (msg.event === 'clientInput') {
-      const playerId = msg.data.playerId;
-      if (userId !== playerId) return;
-      Player.Input(msg.data);
-    }
-  });
-  clientSocket.on('close', () => {
-    console.log(`Disconnected Player${userId}`);
-    Player.RemovePlayer(userId);
-  });
-  clientSocket.send(JSON.stringify({
-    event: 'setClient', data: {
-      playerId: userId,
-      gameFieldSize: GameObject.gameField,
-      textures: staticFiles.imageFiles,
-      bgTextureId: 3,
-    }
-  }));
+  updateClients(ws.clients, dataToSend);
+  onConnection(clientSocket);
 });
 
+Obstacle.mapSetup(gameMap.obstacles);
+
 setInterval(() => {
-  physics();
+  gameLoop();
 }, PHYSIS_RATE);
 
-function updateClients() {
-  for (const client of ws.clients) {
-    const data = {
-      event: 'UpdatePlayers',
-      data: {
-        time: GameObject.prevTime,
-        objects: GameObject.objects,
-      }
-    };
-    client.send(JSON.stringify(data));
-  }
-}
-
-function physics() {
+function gameLoop() {
   Player.Controls();
   GameObject.Physics();
-  updateClients();
+  updateClients(ws.clients, dataToSend);
 }
