@@ -5,7 +5,7 @@ const path = require('path');
 
 const fileExists = (arr, dir) => arr.indexOf(dir) !== -1;
 
-function sendStaticFile(source, res, contentType = '') {
+function sendStaticFile(res, source, contentType = '') {
   const pathToFile = path.resolve(__dirname, `../static${source}`);
   fs.readFile(
     pathToFile,

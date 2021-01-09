@@ -1,6 +1,5 @@
 'use strict';
 
-const fs = require('fs');
 const http = require('http');
 const { GameObject } = require('./src/physics.js');
 const { Player, Obstacle } = require('./src/gameObjects.js');
@@ -10,9 +9,8 @@ const gameMap = require('./resources/gameMap.json');
 
 const WebSocket = require('ws');
 
-const index = fs.readFileSync('./static/index.html', 'utf8');
-
 const PHYSIS_RATE = 1000 / 30;
+const HTML_PAGE_DIR = '/index.html';
 
 function updateClients(clients, data) {
   for (const client of clients) {
@@ -61,13 +59,13 @@ function onConnection(clientSocket) {
 
 const server = http.createServer((req, res) => {
   const source = req.url;
+  const sendFile = sendStaticFile.bind(null, res);
   if (fileExists(staticFiles.imageFiles, source)) {
-    sendStaticFile(source, res);
+    sendFile(source);
   } else if (fileExists(staticFiles.jsFiles, source)) {
-    sendStaticFile(source, res, 'text/javascript');
+    sendFile(source, 'text/javascript');
   } else {
-    res.writeHead(200);
-    res.end(index);
+    sendFile(HTML_PAGE_DIR);
   }
 });
 
@@ -82,8 +80,10 @@ const dataToSend = {
   objects: GameObject.objects,
 };
 
+const update = updateClients.bind(null, ws.clients, dataToSend);
+
 ws.on('connection', clientSocket => {
-  updateClients(ws.clients, dataToSend);
+  update();
   onConnection(clientSocket);
 });
 
@@ -96,5 +96,5 @@ setInterval(() => {
 function gameLoop() {
   Player.Controls();
   GameObject.Physics();
-  updateClients(ws.clients, dataToSend);
+  update();
 }
