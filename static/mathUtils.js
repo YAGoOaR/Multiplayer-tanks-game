@@ -1,8 +1,12 @@
 
-class MathUtils {
+class VectorUtils {
 
   static vectorLength(vector) {
     return Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+  }
+
+  static get EmptyVector() {
+    return { x: 0, y: 0 };
   }
 
   static addVectors(a, b) {
@@ -46,15 +50,15 @@ class MathUtils {
     vector.y = y;
   }
 
-  static CopyVector(a, b) {
-    a.x = b.x;
-    a.y = b.y;
+  static CopyVector(dest, source) {
+    dest.x = source.x;
+    dest.y = source.y;
   }
 
   static vectorAngle(vector) {
-    const length = MathUtils.vectorLength(vector);
+    const length = VectorUtils.vectorLength(vector);
     return Math.acos(vector.x / length) * Math.sign(vector.y);
   }
 }
 
-export { MathUtils };
+export { VectorUtils };
