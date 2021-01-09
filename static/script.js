@@ -7,10 +7,11 @@ import { createTimeoutPromise, loadImages } from './asyncFunctions.js';
 
 const FRAME_RATE = 1000 / 60;
 const SEND_RATE = 1000 / 20;
+const SETTINGS_REQUEST = '/settings.json';
+const SETUP_FAIL_MESSAGE = 'Client setup failed!';
 const TIMEOUT_MESSAGE = 'Connection timeout!';
 const LOAD_ERROR_MESSAGE = 'Failed to load!';
 
-const socket = new WebSocket('ws://127.0.0.1:8000/');
 const log = document.getElementById('log');
 const cvs = document.getElementById('canvas');
 const ctx = cvs.getContext('2d');
@@ -39,25 +40,48 @@ function sendDataToServer(socket, data) {
   socket.send(JSON.stringify(data));
 }
 
-const setup = createTimeoutPromise(TIMEOUT_MESSAGE);
+const connectionString = connection => `ws://${connection.ip}:${connection.port}/`;
 
-setup.promise
+let socket;
+let onSetupResolve;
+const responcePromise = fetch(SETTINGS_REQUEST);
+
+responcePromise
+  .then(data => {
+    const dataPromise = data.json();
+    return dataPromise;
+  })
+  .catch(() => {
+    console.error(SETUP_FAIL_MESSAGE);
+  })
+  .then((data => {
+    socket = new WebSocket(connectionString(data.connection));
+    socket.onopen = onSocketOpen;
+    socket.onclose = onSocketClose;
+    socket.onmessage = onSocketMessage;
+
+    const setup = createTimeoutPromise();
+    onSetupResolve = setup.resolveCallback;
+    return setup.promise;
+  }))
+  .catch(() => {
+    console.error(TIMEOUT_MESSAGE);
+  })
   .then(() => {
     const imageCount = texturePaths.length;
     const { onDataLoad } = createLoadingLog(log, imageCount);
     const promises = loadImages(textures, texturePaths, onDataLoad);
-
-    Promise.all(promises).then(() => {
-      writeLine(log, 'Server data loaded');
-      main();
-    })
-      .catch(() => {
-        console.error(LOAD_ERROR_MESSAGE);
-      });
-
+    return Promise.all(promises);
   })
   .catch(() => {
-    console.error(TIMEOUT_MESSAGE);
+    console.error(LOAD_ERROR_MESSAGE);
+  })
+  .then(() => {
+    writeLine(log, 'Server data loaded');
+    main();
+  })
+  .catch(err => {
+    console.error(err);
   });
 
 const gameFunction = () => {
@@ -90,6 +114,7 @@ const gameFunction = () => {
 };
 
 function main() {
+
   setControlListeners();
 
   timers.push(
@@ -108,21 +133,21 @@ function main() {
   timers.push(sendToServerTimer);
 }
 
-socket.onopen = () => {
+function onSocketOpen() {
   writeLine(log, 'connected');
   socketActive = true;
-};
+}
 
-socket.onclose = () => {
+function onSocketClose() {
   writeLine(log, 'disconnected');
   socketActive = false;
   clearCanvas(ctx, cvs);
   for (const t of timers) {
     clearInterval(t);
   }
-};
+}
 
-socket.onmessage = message => {
+function onSocketMessage(message) {
   const messageData = JSON.parse(message.data);
   const data = messageData.data;
   if (messageData.event === 'textMessage') {
@@ -138,10 +163,10 @@ socket.onmessage = message => {
     player.playerId = data.playerId;
     cvs.width = data.gameFieldSize.x;
     cvs.height = data.gameFieldSize.y;
-    setup.resolveCallback();
+    onSetupResolve();
     writeLine(log, 'Logged as Player' + messageData.data.playerId);
   }
-};
+}
 
 function updateMouseControls() {
   const mousePosOnCvs = {

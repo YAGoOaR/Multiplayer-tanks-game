@@ -1,11 +1,10 @@
 const DEFAULT_TIMEOUT = 2000;
-const LOAD_ERROR_MESSAGE = 'Failed to load!';
 
-const createTimeoutPromise = (errorMessage = '') => {
+const createTimeoutPromise = () => {
   let resolveCallback;
   const promise = new Promise((resolve, reject) => {
     setTimeout(() => {
-      reject(errorMessage);
+      reject();
     }, DEFAULT_TIMEOUT);
     resolveCallback = resolve;
   });
@@ -13,7 +12,7 @@ const createTimeoutPromise = (errorMessage = '') => {
 };
 
 const createDataLoadPromise = data => {
-  const { promise, resolveCallback } = createTimeoutPromise(LOAD_ERROR_MESSAGE);
+  const { promise, resolveCallback } = createTimeoutPromise();
   data.onload = resolveCallback;
   return promise;
 };

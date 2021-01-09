@@ -21,6 +21,12 @@
       "/asyncFunctions.js"
     ]
   },
+  "jsonFiles": {
+    "contentType": "text/plain",
+    "paths": [
+      "/settings.json"
+    ]
+  },
   "htmlFiles":{
     "contentType": "text/html",
     "paths": [
