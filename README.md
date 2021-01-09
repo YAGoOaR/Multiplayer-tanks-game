@@ -15,11 +15,11 @@
 ## About realisation
 The game is made using npm web sockets library(ws). In the progress of development, i used methods of asyncronous programming such as callbacks and promises. Also i made movement smoothing on client. It means client tries to smooth and foresee movement of objects. Thanks to that we can save a lot of internet traffic, because sockets send rate is lover. Also it helps to deal with time delays, so user almost will not see them.
 
-> You can find server script in /src and in index.js.
+> You can find server script in /src
 
 > You can find client script in /static.
 
-> To launch the game, launch index.js and connect to server using browser using it's address and port.
+> To launch server, launch index.js. You can connect to server using browser through server's address and port.
 
 ## Contacts
 Telegram: https://t.me/YAGOoaR
