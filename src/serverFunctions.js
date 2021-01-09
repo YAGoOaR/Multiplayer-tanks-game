@@ -13,11 +13,11 @@ function sendStaticFile(res, source, contentType = '') {
       if (err) {
         res.statusCode = 404;
         res.end(JSON.stringify({ error: 'Not found' }));
-        console.error(err);
-        return;
       }
-      res.setHeader('Content-Type', contentType);
-      res.end(file);
+      else{
+        res.setHeader('Content-Type', contentType);
+        res.end(file);
+      }
     }
   );
 }

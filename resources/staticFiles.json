@@ -1,18 +1,30 @@
 {
-  "imageFiles": [
-    "/img/player.png",
-    "/img/currentPlayer.png",
-    "/img/playerTop.png",
-    "/img/background.png",
-    "/img/bullet.png",
-    "/img/box.png"
-  ],
-  "jsFiles": [
-    "/script.js",
-    "/utils.js",
-    "/canvasFunctions.js",
-    "/mathUtils.js",
-    "/clientLogger.js",
-    "/asyncFunctions.js"
-  ]
+  "imageFiles": {
+    "contentType": "image/png",
+    "paths": [
+      "/img/player.png",
+      "/img/currentPlayer.png",
+      "/img/playerTop.png",
+      "/img/background.png",
+      "/img/bullet.png",
+      "/img/box.png"
+    ]
+  },
+  "jsFiles": {
+    "contentType": "text/javascript",
+    "paths": [
+      "/script.js",
+      "/utils.js",
+      "/canvasFunctions.js",
+      "/mathUtils.js",
+      "/clientLogger.js",
+      "/asyncFunctions.js"
+    ]
+  },
+  "htmlFiles":{
+    "contentType": "text/html",
+    "paths": [
+        "/index.html"
+    ]
+  }
 }

@@ -10,7 +10,7 @@ const gameMap = require('./resources/gameMap.json');
 const WebSocket = require('ws');
 
 const PHYSIS_RATE = 1000 / 30;
-const HTML_PAGE_DIR = '/index.html';
+const DEFAULT_SOURCE = '/index.html';
 
 function updateClients(clients, data) {
   for (const client of clients) {
@@ -51,21 +51,22 @@ function onConnection(clientSocket) {
     event: 'setClient', data: {
       playerId: userId,
       gameFieldSize: GameObject.gameField,
-      textures: staticFiles.imageFiles,
+      textures: staticFiles.imageFiles.paths,
       bgTextureId: 3,
     }
   }));
 }
 
 const server = http.createServer((req, res) => {
-  const source = req.url;
+  const source = req.url !== '/' ? req.url : DEFAULT_SOURCE;
+  console.log(source);
   const sendFile = sendStaticFile.bind(null, res);
-  if (fileExists(staticFiles.imageFiles, source)) {
-    sendFile(source);
-  } else if (fileExists(staticFiles.jsFiles, source)) {
-    sendFile(source, 'text/javascript');
-  } else {
-    sendFile(HTML_PAGE_DIR);
+  for(const i in staticFiles){
+    if (fileExists(staticFiles[i].paths, source)) {
+      console.log('found');
+      sendFile(source, staticFiles[i].contentType);
+      break;
+    }
   }
 });
 
